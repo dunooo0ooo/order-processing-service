@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Order Info</title>
+    <style>
+        body { font-family: system-ui, -apple-system, Arial, sans-serif; margin: 24px; }
+        .box { max-width: 900px; }
+        .row { display: flex; gap: 8px; }
+        input { flex: 1; padding: 10px 12px; font-size: 14px; }
+        button { padding: 10px 14px; font-size: 14px; cursor: pointer; }
+        .meta { margin-top: 10px; color: #666; font-size: 13px; }
+        .err { margin-top: 10px; color: #b00020; white-space: pre-wrap; }
+        .card { margin-top: 14px; padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+        .grid { display: grid; grid-template-columns: 160px 1fr; gap: 6px 12px; }
+        .k { color: #666; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; font-size: 14px; }
+        th { color: #666; font-weight: 600; }
+        pre { background: #f6f6f6; padding: 12px; border-radius: 10px; overflow: auto; }
+        .muted { color: #666; }
+        .toggle { margin-left: 8px; font-size: 13px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="box">
+    <h2>Поиск заказа</h2>
+
+    <div class="row">
+        <input id="oid" placeholder="Введите order_uid" autocomplete="off" />
+        <button id="btn">Найти</button>
+    </div>
+
+    <div class="meta" id="meta"></div>
+    <div class="err" id="err"></div>
+
+    <div id="view"></div>
+
+    <details style="margin-top: 14px;">
+        <summary class="muted">Показать сырой JSON</summary>
+        <pre id="raw"></pre>
+    </details>
+</div>
+
+<script>
+    const oid  = document.getElementById("oid");
+    const btn  = document.getElementById("btn");
+    const meta = document.getElementById("meta");
+    const err  = document.getElementById("err");
+    const view = document.getElementById("view");
+    const raw  = document.getElementById("raw");
+
+    function esc(s) {
+        return String(s ?? "")
+            .replaceAll("&","&amp;")
+            .replaceAll("<","&lt;")
+            .replaceAll(">","&gt;")
+            .replaceAll('"',"&quot;")
+            .replaceAll("'","&#39;");
+    }
+
+    function money(x) {
+        if (typeof x !== "number") return esc(x);
+        return new Intl.NumberFormat("ru-RU").format(x);
+    }
+
+    function renderOrder(o) {
+        const items = Array.isArray(o.items) ? o.items : [];
+        const d = o.delivery || {};
+        const p = o.payment || {};
+
+        const itemsRows = items.map(it => `
+      <tr>
+        <td>${esc(it.name)}</td>
+        <td>${esc(it.brand)}</td>
+        <td>${esc(it.size)}</td>
+        <td>${money(it.price)}</td>
+        <td>${esc(it.sale)}</td>
+        <td>${money(it.total_price)}</td>
+        <td>${esc(it.status)}</td>
+      </tr>
+    `).join("");
+
+        view.innerHTML = `
+      <div class="card">
+        <h3 style="margin:0 0 8px 0;">Заказ</h3>
+        <div class="grid">
+          <div class="k">order_uid</div><div>${esc(o.order_uid)}</div>
+          <div class="k">track_number</div><div>${esc(o.track_number)}</div>
+          <div class="k">entry</div><div>${esc(o.entry)}</div>
+          <div class="k">customer_id</div><div>${esc(o.customer_id)}</div>
+          <div class="k">delivery_service</div><div>${esc(o.delivery_service)}</div>
+          <div class="k">date_created</div><div>${esc(o.date_created)}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 8px 0;">Доставка</h3>
+        <div class="grid">
+          <div class="k">name</div><div>${esc(d.name)}</div>
+          <div class="k">phone</div><div>${esc(d.phone)}</div>
+          <div class="k">email</div><div>${esc(d.email)}</div>
+          <div class="k">address</div><div>${esc(d.city)} ${esc(d.address)} ${esc(d.zip)}</div>
+          <div class="k">region</div><div>${esc(d.region)}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 8px 0;">Оплата</h3>
+        <div class="grid">
+          <div class="k">transaction</div><div>${esc(p.transaction)}</div>
+          <div class="k">provider</div><div>${esc(p.provider)}</div>
+          <div class="k">currency</div><div>${esc(p.currency)}</div>
+          <div class="k">amount</div><div>${money(p.amount)}</div>
+          <div class="k">delivery_cost</div><div>${money(p.delivery_cost)}</div>
+          <div class="k">goods_total</div><div>${money(p.goods_total)}</div>
+          <div class="k">custom_fee</div><div>${money(p.custom_fee)}</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0 0 8px 0;">Товары (${items.length})</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Название</th>
+              <th>Бренд</th>
+              <th>Размер</th>
+              <th>Цена</th>
+              <th>Скидка</th>
+              <th>Итого</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows || `<tr><td colspan="7" class="muted">Нет товаров</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    `;
+    }
+
+    async function loadOrder() {
+        err.textContent = "";
+        meta.textContent = "";
+        view.innerHTML = "";
+        raw.textContent = "";
+
+        const id = oid.value.trim();
+        if (!id) return;
+
+        const t0 = performance.now();
+        const r = await fetch(`/order/${encodeURIComponent(id)}`, { headers: { "Accept": "application/json" } });
+        const t1 = performance.now();
+
+        meta.textContent = `Время запроса (клиент): ${(t1 - t0).toFixed(1)} ms`;
+
+        if (!r.ok) {
+            err.textContent = `HTTP ${r.status}\n${await r.text()}`;
+            return;
+        }
+
+        const j = await r.json();
+        raw.textContent = JSON.stringify(j, null, 2);
+        renderOrder(j);
+    }
+
+    btn.addEventListener("click", loadOrder);
+    oid.addEventListener("keydown", (e) => { if (e.key === "Enter") loadOrder(); });
+</script>
+</body>
+</html>
