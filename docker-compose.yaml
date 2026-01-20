@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
@@ -63,6 +63,28 @@ services:
       KAFKA_CLUSTERS_0_ZOOKEEPER: ${KAFKA_UI_ZOOKEEPER}
     depends_on:
       - kafka
+
+  prometheus:
+    image: prom/prometheus:v2.53.1
+    container_name: prometheus
+    networks:
+      - order-information-service
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: grafana
+    networks:
+      - order-information-service
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
 
 networks:
   order-information-service:

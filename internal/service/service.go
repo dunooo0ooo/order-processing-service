@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dunooo0ooo/wb-tech-l0/internal/infrastructure"
+	"github.com/dunooo0ooo/wb-tech-l0/internal/metrics"
 	oc "github.com/dunooo0ooo/wb-tech-l0/internal/order-cache"
 	"go.uber.org/zap"
 	"time"
@@ -18,14 +19,14 @@ var (
 )
 
 type Service struct {
-	repo   infrastructure.Repository
-	cache  oc.OrderCache
-	logger *zap.Logger
-
+	repo             infrastructure.Repository
+	cache            oc.OrderCache
+	logger           *zap.Logger
+	met              *metrics.Metrics
 	cacheWarmupLimit int
 }
 
-func New(repo infrastructure.Repository, cache oc.OrderCache, logger *zap.Logger, warmupLimit int) *Service {
+func New(repo infrastructure.Repository, cache oc.OrderCache, logger *zap.Logger, warmupLimit int, met *metrics.Metrics) *Service {
 	if warmupLimit <= 0 {
 		warmupLimit = 1000
 	}
@@ -33,6 +34,7 @@ func New(repo infrastructure.Repository, cache oc.OrderCache, logger *zap.Logger
 		repo:             repo,
 		cache:            cache,
 		logger:           logger,
+		met:              met,
 		cacheWarmupLimit: warmupLimit,
 	}
 }
@@ -54,20 +56,35 @@ func (s *Service) WarmupCache(ctx context.Context) error {
 func (s *Service) SaveOrderFromEvent(ctx context.Context, msg []byte) error {
 	var o entity.Order
 	if err := json.Unmarshal(msg, &o); err != nil {
+		if s.met != nil {
+			s.met.KafkaBad.Inc()
+		}
 		s.logger.Warn("bad message: json unmarshal", zap.Error(err))
 		return fmt.Errorf("%w: %v", ErrBadMessage, err)
 	}
 	if o.OrderUID == "" {
+		if s.met != nil {
+			s.met.KafkaBad.Inc()
+		}
 		s.logger.Warn("bad message: empty order_uid")
 		return fmt.Errorf("%w: empty order_uid", ErrBadMessage)
 	}
 	if o.DateCreated.IsZero() {
 		o.DateCreated = time.Now().UTC()
 	}
-
+	start := time.Now()
 	if err := s.repo.Save(ctx, &o); err != nil {
+		if s.met != nil {
+			s.met.DBSaveDuration.Observe(time.Since(start).Seconds())
+			s.met.KafkaErrors.Inc()
+		}
 		s.logger.Error("save order failed", zap.String("order_uid", o.OrderUID), zap.Error(err))
 		return err
+	}
+
+	if s.met != nil {
+		s.met.DBSaveDuration.Observe(time.Since(start).Seconds())
+		s.met.KafkaMessages.Inc()
 	}
 
 	s.cache.Set(o.OrderUID, &o)
@@ -77,12 +94,21 @@ func (s *Service) SaveOrderFromEvent(ctx context.Context, msg []byte) error {
 
 func (s *Service) GetOrder(ctx context.Context, id string) (*entity.Order, error) {
 	if o, ok := s.cache.Get(id); ok {
-		s.logger.Debug("cache hit", zap.String("order_uid", id))
+		if s.met != nil {
+			s.met.CacheHits.Inc()
+		}
 		return o, nil
+	}
+	if s.met != nil {
+		s.met.CacheMisses.Inc()
 	}
 	s.logger.Debug("cache miss", zap.String("order_uid", id))
 
+	start := time.Now()
 	o, err := s.repo.GetByID(ctx, id)
+	if s.met != nil {
+		s.met.DBGetDuration.Observe(time.Since(start).Seconds())
+	}
 	if err != nil {
 		s.logger.Error("get order from db failed", zap.String("order_uid", id), zap.Error(err))
 		return nil, err

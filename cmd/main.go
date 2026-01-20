@@ -7,11 +7,14 @@ import (
 	"github.com/dunooo0ooo/wb-tech-l0/internal/delivery"
 	"github.com/dunooo0ooo/wb-tech-l0/internal/infrastructure/postgres"
 	consumer "github.com/dunooo0ooo/wb-tech-l0/internal/kafka"
+	"github.com/dunooo0ooo/wb-tech-l0/internal/metrics"
 	oc "github.com/dunooo0ooo/wb-tech-l0/internal/order-cache"
 	"github.com/dunooo0ooo/wb-tech-l0/internal/service"
 	"github.com/dunooo0ooo/wb-tech-l0/pkg/config"
 	"github.com/dunooo0ooo/wb-tech-l0/pkg/logger"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
 	"os"
 	"os/signal"
@@ -58,7 +61,11 @@ func main() {
 
 	repository := postgres.NewOrderRepository(dbpool)
 	c := oc.NewOrderCache(cfg.Cache)
-	svc := service.New(repository, c, log, 1000)
+
+	reg := prometheus.NewRegistry()
+	met := metrics.New(reg)
+
+	svc := service.New(repository, c, log, cfg.Cache.Limit, met)
 
 	if err := svc.WarmupCache(ctx); err != nil {
 		log.Fatal("warmup cache failed", zap.Error(err))
@@ -77,7 +84,9 @@ func main() {
 	handler := delivery.NewOrderHandler(svc)
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
+
 	mux.Handle("/", http.FileServer(http.Dir("./web")))
+	mux.Handle("GET /metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
