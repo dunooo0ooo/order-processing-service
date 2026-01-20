@@ -1,10 +1,11 @@
 package order_cache
 
 import (
+	"container/list"
 	"sync"
-	"time"
 
 	"github.com/dunooo0ooo/wb-tech-l0/internal/entity"
+	"github.com/dunooo0ooo/wb-tech-l0/pkg/config"
 )
 
 type OrderCache interface {
@@ -13,43 +14,47 @@ type OrderCache interface {
 }
 
 type OrderCacheImpl struct {
-	mu    sync.RWMutex
-	data  map[string]entry
+	mu    sync.Mutex
 	limit int
+
+	ll *list.List
+	m  map[string]*list.Element
 }
 
-type entry struct {
-	o       entity.Order
-	touched time.Time
+type lruEntry struct {
+	key   string
+	order entity.Order
 }
 
-func NewOrderCache(limit int) *OrderCacheImpl {
+func NewOrderCache(cfg config.CacheConfig) *OrderCacheImpl {
+	limit := cfg.Limit
 	if limit <= 0 {
 		limit = 1000
 	}
 	return &OrderCacheImpl{
-		data:  make(map[string]entry, limit),
 		limit: limit,
+		ll:    list.New(),
+		m:     make(map[string]*list.Element, limit),
 	}
 }
 
 func (c *OrderCacheImpl) Get(id string) (*entity.Order, bool) {
-	c.mu.RLock()
-	e, ok := c.data[id]
-	c.mu.RUnlock()
-	if !ok {
+	if id == "" {
 		return nil, false
 	}
 
 	c.mu.Lock()
-	if e2, ok2 := c.data[id]; ok2 {
-		e2.touched = time.Now()
-		c.data[id] = e2
-	}
-	c.mu.Unlock()
+	defer c.mu.Unlock()
 
-	o := e.o
-	return &o, true
+	if el, ok := c.m[id]; ok {
+		c.ll.MoveToFront(el)
+
+		ent := el.Value.(lruEntry)
+		o := ent.order
+		return &o, true
+	}
+
+	return nil, false
 }
 
 func (c *OrderCacheImpl) Set(id string, o *entity.Order) {
@@ -58,30 +63,23 @@ func (c *OrderCacheImpl) Set(id string, o *entity.Order) {
 	}
 
 	c.mu.Lock()
-	c.data[id] = entry{o: *o, touched: time.Now()}
-	c.evictIfNeededLocked()
-	c.mu.Unlock()
-}
+	defer c.mu.Unlock()
 
-func (c *OrderCacheImpl) evictIfNeededLocked() {
-	if len(c.data) <= c.limit {
+	if el, ok := c.m[id]; ok {
+		el.Value = lruEntry{key: id, order: *o}
+		c.ll.MoveToFront(el)
 		return
 	}
 
-	var (
-		oldestK string
-		oldestT time.Time
-		first   = true
-	)
+	el := c.ll.PushFront(lruEntry{key: id, order: *o})
+	c.m[id] = el
 
-	for k, v := range c.data {
-		if first || v.touched.Before(oldestT) {
-			oldestK, oldestT = k, v.touched
-			first = false
+	if c.ll.Len() > c.limit {
+		back := c.ll.Back()
+		if back != nil {
+			ent := back.Value.(lruEntry)
+			delete(c.m, ent.key)
+			c.ll.Remove(back)
 		}
-	}
-
-	if oldestK != "" {
-		delete(c.data, oldestK)
 	}
 }

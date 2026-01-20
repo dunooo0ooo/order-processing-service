@@ -42,7 +42,13 @@ func (c *Consumer) Run(ctx context.Context) error {
 			return err
 		}
 
-		err = c.svc.SaveOrderFromEvent(ctx, m.Value)
+		switch m.Topic {
+		case "orders_creation":
+			err := c.svc.SaveOrderFromEvent(ctx, m.Value)
+			if err != nil {
+				c.log.Warn("failed to save order", zap.Error(err))
+			}
+		}
 
 		if errors.Is(err, service.ErrBadMessage) {
 			c.log.Fatal("bad message, skip: %v", zap.Error(err))

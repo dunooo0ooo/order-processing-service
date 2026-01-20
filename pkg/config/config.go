@@ -34,6 +34,11 @@ type Config struct {
 	Postgres PostgresConfig
 	Logger   LoggerConfig
 	Kafka    KafkaConsumerConfig
+	Cache    CacheConfig
+}
+
+type CacheConfig struct {
+	Limit int
 }
 
 func getenv(key, def string) string {
@@ -48,16 +53,6 @@ func getenvInt(key string, def int) int {
 		n, err := strconv.Atoi(v)
 		if err == nil {
 			return n
-		}
-	}
-	return def
-}
-
-func getenvInt32(key string, def int32) int32 {
-	if v := os.Getenv(key); v != "" {
-		n, err := strconv.Atoi(v)
-		if err == nil {
-			return int32(n)
 		}
 	}
 	return def
@@ -83,6 +78,9 @@ func Load() Config {
 			Brokers: strings.Split(getenv("KAFKA_BROKERS", "localhost:29092"), ","),
 			Topic:   getenv("KAFKA_TOPIC", "orders"),
 			GroupID: getenv("KAFKA_GROUP_ID", "order-information-service"),
+		},
+		Cache: CacheConfig{
+			Limit: getenvInt("CACHE_LIMIT", 500),
 		},
 	}
 }

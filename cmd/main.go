@@ -57,7 +57,7 @@ func main() {
 	)
 
 	repository := postgres.NewOrderRepository(dbpool)
-	c := oc.NewOrderCache(1000)
+	c := oc.NewOrderCache(cfg.Cache)
 	svc := service.New(repository, c, log, 1000)
 
 	if err := svc.WarmupCache(ctx); err != nil {
