@@ -42,29 +42,31 @@ func (c *Consumer) Run(ctx context.Context) error {
 			return err
 		}
 
-		switch m.Topic {
-		case "orders_creation":
-			err := c.svc.SaveOrderFromEvent(ctx, m.Value)
-			if err != nil {
-				c.log.Warn("failed to save order", zap.Error(err))
-			}
-		}
+		err = c.svc.SaveOrderFromEvent(ctx, m.Value)
 
 		if errors.Is(err, service.ErrBadMessage) {
-			c.log.Fatal("bad message, skip: %v", zap.Error(err))
+			c.log.Warn("bad message, skipped",
+				zap.ByteString("value", m.Value),
+				zap.Error(err),
+			)
+
 			if e := c.r.CommitMessages(ctx, m); e != nil {
-				c.log.Fatal("commit error: %v", zap.Error(e))
+				c.log.Error("commit error", zap.Error(e))
 			}
 			continue
 		}
 
 		if err != nil {
-			c.log.Fatal("handle error (no commit): %v", zap.Error(err))
+			c.log.Error("failed to handle message, retry",
+				zap.Error(err),
+			)
+
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-time.After(backoff):
 			}
+
 			if backoff < 5*time.Second {
 				backoff *= 2
 			}
@@ -72,7 +74,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 		}
 
 		if err := c.r.CommitMessages(ctx, m); err != nil {
-			c.log.Fatal("commit error: %v", zap.Error(err))
+			c.log.Error("commit error", zap.Error(err))
 		}
 
 		backoff = 200 * time.Millisecond
