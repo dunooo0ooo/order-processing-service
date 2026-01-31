@@ -10,12 +10,11 @@ type HTTPConfig struct {
 }
 
 type PostgresConfig struct {
-	Host          string
-	Port          int
-	User          string
-	Password      string
-	DBName        string
-	MigrationsDir string
+	Host     string
+	Port     int
+	User     string
+	Password string
+	DBName   string
 }
 
 type LoggerConfig struct {
@@ -51,12 +50,11 @@ func Load() Config {
 			Addr: getenv("HTTP_ADDR", ":8082"),
 		},
 		Postgres: PostgresConfig{
-			Host:          getenv("POSTGRES_HOST", "localhost"),
-			Port:          getenvInt("POSTGRES_PORT", 5432),
-			User:          getenv("POSTGRES_USER", "orders_user"),
-			Password:      getenv("POSTGRES_PASSWORD", "orders_pass"),
-			DBName:        getenv("POSTGRES_DB", "orders_db"),
-			MigrationsDir: getenv("MIGRATIONS_DIR", "./migrations"),
+			Host:     getenv("POSTGRES_HOST", "localhost"),
+			Port:     getenvInt("POSTGRES_PORT", 5432),
+			User:     getenv("POSTGRES_USER", "orders_user"),
+			Password: getenv("POSTGRES_PASSWORD", "orders_pass"),
+			DBName:   getenv("POSTGRES_DB", "orders_db"),
 		},
 		Logger: LoggerConfig{
 			Level: getenv("LOG_LEVEL", "info"),
