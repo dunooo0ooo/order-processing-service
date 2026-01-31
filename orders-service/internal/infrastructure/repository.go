@@ -3,7 +3,7 @@ package infrastructure
 import (
 	"context"
 	"errors"
-	"github.com/dunooo0ooo/wb-tech-l0/internal/entity"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/internal/entity"
 )
 
 type Repository interface {

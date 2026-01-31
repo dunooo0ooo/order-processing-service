@@ -2,10 +2,9 @@ package order_cache
 
 import (
 	"container/list"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/internal/entity"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/pkg/config"
 	"sync"
-
-	"github.com/dunooo0ooo/wb-tech-l0/internal/entity"
-	"github.com/dunooo0ooo/wb-tech-l0/pkg/config"
 )
 
 type OrderCache interface {

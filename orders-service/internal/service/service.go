@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/dunooo0ooo/wb-tech-l0/internal/infrastructure"
-	"github.com/dunooo0ooo/wb-tech-l0/internal/metrics"
-	oc "github.com/dunooo0ooo/wb-tech-l0/internal/order-cache"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/internal/entity"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/internal/infrastructure"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/internal/metrics"
+	oc "github.com/dunooo0ooo/wb-tech-l0/orders-service/internal/order-cache"
 	"go.uber.org/zap"
 	"time"
-
-	"github.com/dunooo0ooo/wb-tech-l0/internal/entity"
 )
 
 var (

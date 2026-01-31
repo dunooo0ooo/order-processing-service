@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/dunooo0ooo/wb-tech-l0/internal/infrastructure"
+	entity2 "github.com/dunooo0ooo/wb-tech-l0/orders-service/internal/entity"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/internal/infrastructure"
 	"time"
 
-	"github.com/dunooo0ooo/wb-tech-l0/internal/entity"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -20,7 +20,7 @@ func NewOrderRepository(pool *pgxpool.Pool) *Repository {
 	return &Repository{pool: pool}
 }
 
-func (r *Repository) Save(ctx context.Context, o *entity.Order) error {
+func (r *Repository) Save(ctx context.Context, o *entity2.Order) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("%w: %w", infrastructure.ErrInternalDatabase, err)
@@ -177,7 +177,7 @@ func (r *Repository) Save(ctx context.Context, o *entity.Order) error {
 	return nil
 }
 
-func (r *Repository) GetByID(ctx context.Context, id string) (*entity.Order, error) {
+func (r *Repository) GetByID(ctx context.Context, id string) (*entity2.Order, error) {
 	const q = `
 		SELECT
 			o.order_uid, o.track_number, o.entry, o.locale, o.internal_signature,
@@ -191,7 +191,7 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*entity.Order, err
 		WHERE o.order_uid = @id
 	`
 
-	var o entity.Order
+	var o entity2.Order
 	var created time.Time
 
 	err := r.pool.QueryRow(ctx, q, pgx.NamedArgs{"id": id}).Scan(
@@ -220,9 +220,9 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*entity.Order, err
 	}
 	defer rows.Close()
 
-	items := make([]entity.Item, 0, 8)
+	items := make([]entity2.Item, 0, 8)
 	for rows.Next() {
-		var it entity.Item
+		var it entity2.Item
 		if err := rows.Scan(
 			&it.ChrtID, &it.TrackNumber, &it.Price, &it.Rid, &it.Name,
 			&it.Sale, &it.Size, &it.TotalPrice, &it.NmID, &it.Brand, &it.Status,
@@ -239,7 +239,7 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*entity.Order, err
 	return &o, nil
 }
 
-func (r *Repository) LoadRecent(ctx context.Context, limit int) ([]entity.Order, error) {
+func (r *Repository) LoadRecent(ctx context.Context, limit int) ([]entity2.Order, error) {
 	if limit <= 0 {
 		limit = 1000
 	}
@@ -267,7 +267,7 @@ func (r *Repository) LoadRecent(ctx context.Context, limit int) ([]entity.Order,
 		return nil, fmt.Errorf("%w: %w", infrastructure.ErrInternalDatabase, err)
 	}
 
-	out := make([]entity.Order, 0, len(ids))
+	out := make([]entity2.Order, 0, len(ids))
 	for _, id := range ids {
 		o, err := r.GetByID(ctx, id)
 		if err != nil {

@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/dunooo0ooo/wb-tech-l0/pkg/config"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/pkg/config"
 	"log"
 
 	_ "github.com/jackc/pgx/v5/stdlib"

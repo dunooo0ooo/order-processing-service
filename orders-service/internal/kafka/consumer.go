@@ -3,12 +3,12 @@ package consumer
 import (
 	"context"
 	"errors"
-	"github.com/dunooo0ooo/wb-tech-l0/internal/delivery"
-	"github.com/dunooo0ooo/wb-tech-l0/pkg/config"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/internal/delivery"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/internal/service"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/pkg/config"
 	"go.uber.org/zap"
 	"time"
 
-	"github.com/dunooo0ooo/wb-tech-l0/internal/service"
 	"github.com/segmentio/kafka-go"
 )
 

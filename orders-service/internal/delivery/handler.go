@@ -3,7 +3,7 @@ package delivery
 import (
 	"context"
 	"encoding/json"
-	"github.com/dunooo0ooo/wb-tech-l0/internal/entity"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/internal/entity"
 	"net/http"
 )
 

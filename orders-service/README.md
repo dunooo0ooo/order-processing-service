@@ -1,4 +1,4 @@
-# Order Processing Service
+# Order Information Service
 
 Демонстрационный микросервис для приёма, хранения и отображения информации о заказах.  
 

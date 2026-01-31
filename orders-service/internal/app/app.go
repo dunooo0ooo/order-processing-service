@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"errors"
-	"github.com/dunooo0ooo/wb-tech-l0/pkg/config"
+	"github.com/dunooo0ooo/wb-tech-l0/orders-service/pkg/config"
 	"net/http"
 	"time"
 
