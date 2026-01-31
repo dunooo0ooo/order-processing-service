@@ -2,7 +2,7 @@
 -- +goose StatementBegin
 CREATE TABLE IF NOT EXISTS delivery
 (
-    order_uid text PRIMARY KEY REFERENCES orders (order_uid) ON DELETE CASCADE,
+    order_uid text PRIMARY KEY REFERENCES orders(order_uid) ON DELETE CASCADE,
     name      text,
     phone     text,
     zip       text,
