@@ -6,6 +6,7 @@ import (
 	"github.com/dunooo0ooo/wb-tech-l0/user-service/internal/entity"
 	"github.com/dunooo0ooo/wb-tech-l0/user-service/internal/infrastructure"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -33,6 +34,12 @@ func (repo *Repository) TryCreate(ctx context.Context, user *entity.User) (bool,
 			"role":     user.Role})
 
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" {
+				return false, infrastructure.ErrUserAlreadyExist
+			}
+		}
 		return false, infrastructure.ErrInternalDatabase
 	}
 
@@ -47,12 +54,12 @@ func (repo *Repository) GetUserByUsername(ctx context.Context, username string) 
 	var u entity.User
 
 	err := repo.pool.QueryRow(ctx, `
-		SELECT username, password, role, created_at
+		SELECT username, password, role
 		FROM users
 		WHERE username = @username
 	`, pgx.NamedArgs{"username": username}).Scan(
 		&u.Username,
-		&u.Password, // хэш
+		&u.Password,
 		&u.Role,
 	)
 
