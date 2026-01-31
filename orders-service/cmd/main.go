@@ -85,7 +85,7 @@ func main() {
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
 
-	mux.Handle("/", http.FileServer(http.Dir("./web")))
+	mux.Handle("/", http.FileServer(http.Dir("../web")))
 	mux.Handle("GET /metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
