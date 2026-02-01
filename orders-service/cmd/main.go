@@ -72,7 +72,9 @@ func main() {
 	}
 
 	cons := consumer.New(cfg.Kafka, svc, log)
-	defer cons.Close()
+	defer func(cons *consumer.Consumer) {
+		_ = cons.Close()
+	}(cons)
 
 	go func() {
 		if err := cons.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
