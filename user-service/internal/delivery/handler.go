@@ -29,7 +29,7 @@ func New(us UserService) *UserHandler {
 
 func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /users", h.CreateUser)
-	mux.HandleFunc("GET /login", h.Verify)
+	mux.HandleFunc("POST  /login", h.Verify)
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
