@@ -3,6 +3,7 @@ module github.com/dunooo0ooo/wb-tech-l0
 go 1.25.4
 
 require (
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/jackc/pgx/v5 v5.7.5
 	github.com/pressly/goose/v3 v3.26.0
 )
